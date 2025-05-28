@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_layout_wizard_form" model="ir.ui.view">
+        <field name="name">layout.wizard.form</field>
+        <field name="model">layout.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Layout Configuration">
+                <group class="o_document_layout_company">
+                    <field name="layout_choice" widget="selection_badge" required="1"
+                           options="{'horizontal': true, 'size': 'sm'}"/>
+                </group>
+                <div class="o_preview">
+                    <field name="preview" widget="iframe_wrapper"
+                           class="preview_document_layout d-flex justify-content-center mb-0"/>
+                </div>
+                <footer>
+                    <button name="apply_layout" type="object" string="Apply" class="btn-primary"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_layout_wizard" model="ir.actions.act_window">
+        <field name="name">Layout Configuration</field>
+        <field name="res_model">layout.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+</odoo>

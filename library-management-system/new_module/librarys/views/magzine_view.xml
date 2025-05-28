@@ -1,0 +1,150 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="action_freuency_yearly" model="ir.actions.server">
+        <field name="name">frequency weekly</field>
+        <field name="state">code</field>
+        <field name="type">ir.actions.server</field>
+        <field name="model_id" ref="librarys.model_library_magazine"/>
+        <field name="binding_model_id" ref="librarys.model_library_magazine"/>
+        <field name="binding_view_types">list,form</field>
+        <field name="code">
+            for record in records:
+                if record.freuency == 'yearly':
+                     record.action_weekly()
+        </field>
+    </record>
+
+    <record id="action_frequency" model="ir.actions.server">
+        <field name="name">frequency</field>
+        <field name="state">code</field>
+        <field name="type">ir.actions.server</field>
+        <field name="model_id" ref="librarys.model_library_magazine"/>
+        <field name="binding_model_id" ref="librarys.model_library_magazine"/>
+        <field name="binding_view_types">list</field>
+        <field name="code">
+            action = {
+            'type': 'ir.actions.act_window',
+            'name': 'Frequency Wizard',
+            'res_model': 'magazine.frequency.wizard',
+            'view_mode': 'form',
+            'target': 'new',
+            }
+        </field>
+    </record>
+
+
+    <record id="view_library_magzine_list" model="ir.ui.view">
+        <field name="name">library.magazine.list.view</field>
+        <field name="model">library.magazine</field>
+        <field name="arch" type="xml">
+            <list string="magzine List">
+                <field name="name"/>
+                <field name="isbn"/>
+                <field name="publish_date"/>
+                <field name="quantity"/>
+                <field name="available_copies"/>
+                <field name="borrowed_count"/>
+                <field name="freuency" decoration-success="freuency == 'weekly'"
+                       decoration-info="freuency  == 'monthly'"
+                       decoration-primary="freuency  == 'yearly'"
+                       widget="badge"/>
+                <field name="locations"/>
+                <field name="currency_id" invisible="1" optional="hide"/>
+                <field name="amount_total" sum="amount_total" widget="monetary"
+                       decoration-bf="1"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_library_author_form" model="ir.ui.view">
+        <field name="name">library.magazine.form.view</field>
+        <field name="model">library.magazine</field>
+        <field name="arch" type="xml">
+            <form string="magzine Form">
+                <sheet>
+                    <group>
+                        <field name="name"/>
+                        <field name="isbn"/>
+                        <field name="publish_date"/>
+                        <field name="quantity"/>
+                        <field name="available_copies"/>
+                        <field name="borrowed_count"/>
+                        <field name="freuency" decoration-success="freuency == 'weekly'"
+                               decoration-info="freuency  == 'monthly'"
+                               decoration-primary="freuency  == 'yearly'"/>
+                        <field name="locations"/>
+                        <field name="currency_id" invisible="1" optional="hide"/>
+                        <field name="amount_total" sum="amount_total" widget="monetary"
+                               decoration-bf="1"/>
+                    </group>
+                </sheet>
+                <!-- Chatter -->
+                <div class="oe_chatter"/>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_library_author_kanban" model="ir.ui.view">
+        <field name="name">library.magazine.kanban.view</field>
+        <field name="model">library.magazine</field>
+        <field name="arch" type="xml">
+            <kanban class="o_kanban_view">
+                <templates>
+                    <t t-name="card">
+                        <div class="o_kanban_details">
+                            <field name="name"/>
+                            <field name="isbn"/>
+                            <field name="publish_date"/>
+                            <field name="quantity"/>
+                            <field name="available_copies"/>
+                            <field name="borrowed_count"/>
+                            <field name="freuency" decoration-success="freuency == 'weekly'"
+                                   decoration-info="freuency  == 'monthly'"
+                                   decoration-primary="freuency  == 'yearly'"
+                                   widget="badge"/>
+                            <field name="currency_id" invisible="1" optional="hide"/>
+                            <field name="amount_total" sum="amount_total"/>
+                        </div>
+                    </t>
+                </templates>
+            </kanban>
+        </field>
+    </record>
+
+
+    <record id="view_libabry_magazine_search" model="ir.ui.view">
+        <field name="name">library.magazine.search.view</field>
+        <field name="model">library.magazine</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="name"/>
+                <field name="isbn"/>
+                <field name="publish_date"/>
+                <field name="quantity"/>
+                <field name="freuency" decoration-success="freuency == 'weekly'"
+                       decoration-info="freuency  == 'monthly'"
+                       decoration-primary="freuency  == 'yearly'"
+                       widget="badge"/>
+
+                <group expand="0" string="Group By">
+                    <filter string="frequency" name="group_by_freuency" context="{'group_by': 'freuency'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+
+    <record id="action_library_magzine" model="ir.actions.act_window">
+        <field name="name">Magazine</field>
+        <field name="res_model">library.magazine</field>
+        <field name="view_mode">list,form,kanban,search</field>
+    </record>
+
+    <menuitem id="magzine_view"
+              name="Magazine"
+              parent="collection_views"
+              action="action_library_magzine"
+    />
+</odoo>

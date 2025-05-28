@@ -1,0 +1,761 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- 1. Books Listing with Pagination -->
+    <template id="book_pages" name="Books List Page">
+        <t t-call="website.layout">
+            <div class="container mt-4 mb-5">
+                <h1 class="text-center">📚 Welcome to the Library</h1>
+                <p class="lead text-center">Search, browse, and manage your favorite books with ease.</p>
+
+                <!-- Quote -->
+                <div class="my-4 text-center">
+                    <blockquote class="blockquote">
+                        <p>"<t t-esc="quote['text']"/>"
+                        </p>
+                        <footer class="blockquote-footer">
+                            <t t-esc="quote['author']"/>
+                        </footer>
+                    </blockquote>
+                </div>
+
+                <!-- Search Bar -->
+                <form method="GET" action="/library/search">
+                    <div class="input-group mb-4">
+                        <select name="category" class="form-select">
+                            <option value="">All Categories</option>
+                            <t t-foreach="request.env['library.category'].sudo().search([])" t-as="cat">
+                                <option t-att-value="cat.id" t-att-selected="category and category.id == cat.id">
+                                    <t t-esc="cat.name"/>
+                                </option>
+                            </t>
+                        </select>
+                        <input type="text" name="search" class="form-control" placeholder="Search by title or author"/>
+                        <button class="btn btn-primary">Search</button>
+                    </div>
+                </form>
+
+                <!-- Book Cards -->
+                <div class="row">
+                    <t t-foreach="books" t-as="book">
+                        <div class="col-md-4 col-lg-3 mb-4">
+                            <div class="card h-100 shadow-sm">
+                                <img t-if="book.image"
+                                     t-att-src="'/web/image/library.books/' + str(book.id) + '/image'"
+                                     class="card-img-top" alt="Cover"
+                                     style="object-fit:cover;height:250px;width:100%;"/>
+                                <div class="card-body d-flex flex-column">
+                                    <h5 t-esc="book.name" class="card-title"/>
+                                    <p class="card-text small">
+                                        <strong>Author:</strong>
+                                        <t t-esc="book.authors_id.name or 'Unknown'"/>
+                                        <br/>
+                                        <strong>Category:</strong>
+                                        <t t-esc="book.category_id.name"/>
+                                        <br/>
+                                        <strong>Lang:</strong>
+                                        <t t-esc="book.language"/>
+                                        <br/>
+                                        <strong>Status:</strong>
+                                        <t t-esc="book.state"/>
+                                    </p>
+                                    <a t-att-href="'/book/' + str(book.id)"
+                                       class="btn btn-outline-primary mt-auto btn-sm">
+                                        View Details
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </t>
+                </div>
+
+                <!-- Pagination -->
+                <t t-if="total_pages > 1">
+                    <nav class="mt-4" aria-label="Page navigation">
+                        <ul class="pagination justify-content-center">
+                            <li class="page-item" t-if="current_page &gt; 1">
+                                <a class="page-link" t-att-href="'/library/page/%d' % (current_page - 1)">Previous</a>
+                            </li>
+                            <t t-foreach="range(1, total_pages + 1)" t-as="pg">
+                                <li class="page-item"
+                                    t-att-class="'page-item active' if pg == current_page else 'page-item'">
+                                    <a class="page-link" t-att-href="'/library/page/%d' % pg">
+                                        <t t-esc="pg"/>
+                                    </a>
+                                </li>
+                            </t>
+                            <li class="page-item" t-if="current_page &lt; total_pages">
+                                <a class="page-link" t-att-href="'/library/page/%d' % (current_page + 1)">Next</a>
+                            </li>
+                        </ul>
+                    </nav>
+                </t>
+            </div>
+        </t>
+    </template>
+
+    <!-- Book Detail Page -->
+    <template id="book_detail" name="Book Detail Page">
+        <t t-call="website.layout">
+            <div class="container my-5">
+                <div class="row">
+                    <div class="col-md-4">
+                        <img t-if="book.image"
+                             t-att-src="'/web/image/library.books/' + str(book.id) + '/image'"
+                             class="img-fluid shadow" style="max-height: 600px; object-fit: contain;"/>
+                        <img t-if="not book.image"
+                             src="/librarys/static/src/img/default_cover.png"
+                             class="img-fluid shadow" style="max-height: 600px; object-fit: contain;"/>
+                    </div>
+                    <div class="col-md-8">
+                        <h2 t-esc="book.name"/>
+                        <p class="lead">
+                            <strong>Author:</strong>
+                            <t t-esc="book.authors_id.name or 'Unknown'"/>
+                            <br/>
+                            <strong>Language:</strong>
+                            <t t-esc="book.language"/>
+                            <br/>
+                            <strong>Category:</strong>
+                            <t t-esc="book.category_id.name"/>
+                            <br/>
+                            <strong>State:</strong>
+                            <t t-esc="book.state"/>
+                            <br/>
+                            <strong>Published:</strong>
+                            <t t-esc="book.publish_date"/>
+                        </p>
+                        <p t-esc="book.description"/>
+                        <a t-att-href="'/library/cart/add/%s' % book.id" class="btn btn-outline-primary">
+                            <i class="fa fa-shopping-cart me-2"/>
+                            Add to Cart
+                        </a>
+                        <!--                        <div id="add_to_cart_wrap"-->
+                        <!--                             t-attf-class="{{'d-none' if combination_info['prevent_zero_price_sale'] else 'd-inline-flex'}} align-items-center mb-2 me-auto">-->
+                        <!--                            <a data-animation-selector=".o_wsale_product_images" role="button" id="add_to_cart"-->
+                        <!--                               t-attf-class="btn btn-primary js_check_product a-submit flex-grow-1" href="#">-->
+                        <!--                                <i class="fa fa-shopping-cart me-2"/>-->
+                        <!--                                Add to cart-->
+                        <!--                            </a>-->
+                        <!--                        </div>-->
+                    </div>
+                </div>
+
+                <!-- Submit Review -->
+                <t t-if="request.website.user_id.id != request.env.user.id and not request.env.user._is_public()">
+                    <div class="my-5">
+                        <h4>Submit a Review</h4>
+                        <form action="/book/review" method="POST">
+                            <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
+                            <input type="hidden" name="book_id" t-att-value="book.id"/>
+
+                            <div class="form-group">
+                                <label>Rating</label>
+                                <select name="rating" class="form-control">
+                                    <option value="1">⭐</option>
+                                    <option value="2">⭐⭐</option>
+                                    <option value="3">⭐⭐⭐</option>
+                                    <option value="4">⭐⭐⭐⭐</option>
+                                    <option value="5">⭐⭐⭐⭐⭐</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Comment</label>
+                                <textarea name="comment" class="form-control"></textarea>
+                            </div>
+                            <button type="submit" class="btn btn-success mt-2">Submit</button>
+                        </form>
+                    </div>
+                </t>
+
+                <!-- Display Reviews -->
+                <div class="mt-5">
+                    <h4>Reviews</h4>
+                    <t t-if="book.review_ids">
+                        <t t-foreach="book.review_ids" t-as="review">
+                            <div class="border p-3 mb-3 rounded shadow-sm bg-light">
+                                <p class="mb-1">
+                                    <strong><t t-esc="review.user_id.name"/>:
+                                    </strong>
+                                    <t t-esc="review.rating"/>
+                                    ★
+                                </p>
+                                <p class="mb-0" t-esc="review.comment"/>
+                            </div>
+                        </t>
+                    </t>
+                    <t t-if="not book.review_ids">
+                        <p>No reviews yet. Be the first to review this book!</p>
+                    </t>
+                </div>
+            </div>
+        </t>
+    </template>
+
+    <template id="publisher_pages" name="Publisher List Page">
+        <t t-call="website.layout">
+            <div class="container my-5">
+                <div class="text-center mb-5">
+                    <h2 class="display-4">📚 Our Publishers</h2>
+                    <p class="text-muted">Explore the trusted publishers behind our library collection.</p>
+                </div>
+
+                <div class="row">
+                    <t t-foreach="publisher" t-as="publisher">
+                        <div class="col-md-6 col-lg-4 mb-4 d-flex align-items-stretch">
+                            <div class="card shadow-sm border-0 w-100">
+                                <t t-if="publisher.image">
+                                    <img t-att-src="'/web/image/library.publisher/' + str(publisher.id) + '/image'"
+                                         class="card-img-top rounded-top"
+                                         alt="Publisher Image"
+                                         style="object-fit: cover; height: 180px;"/>
+                                </t>
+                                <div class="card-body d-flex flex-column">
+                                    <h5 class="card-title mb-2">
+                                        <i class="fa fa-building text-primary mr-1"></i>
+                                        <t t-esc="publisher.name.name or 'Unknown'"/>
+                                    </h5>
+                                    <ul class="list-unstyled text-muted small mb-3">
+                                        <li>
+                                            <strong>📞 Phone:</strong>
+                                            <t t-esc="publisher.phone or 'N/A'"/>
+                                        </li>
+                                        <li>
+                                            <strong>📱 Mobile:</strong>
+                                            <t t-esc="publisher.mobile or 'N/A'"/>
+                                        </li>
+                                        <li>
+                                            <strong>✉️ Email:</strong>
+                                            <t t-esc="publisher.email or 'N/A'"/>
+                                        </li>
+                                        <li>
+                                            <strong>🌐 Website:</strong>
+                                            <t t-esc="publisher.website or 'N/A'"/>
+                                        </li>
+                                        <li>
+                                            <strong>📅 Founded:</strong>
+                                            <t t-esc="publisher.founded or 'N/A'"/>
+                                        </li>
+                                        <li>
+                                            <strong>⭐ Priority:</strong>
+                                            <t t-esc="dict({'0': 'Very Low', '1': 'Low', '2': 'Normal', '3': 'High'}).get(publisher.priority, 'Unknown')"/>
+                                        </li>
+                                    </ul>
+                                    <div class="mt-auto text-center">
+                                        <a t-att-href="'/publisher/' + str(publisher.id)"
+                                           class="btn btn-outline-primary btn-sm">
+                                            View Details
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </t>
+                </div>
+            </div>
+        </t>
+    </template>
+
+    <template id="members_pages" name="Members List Page">
+        <t t-call="website.layout">
+            <div class="container my-5">
+                <div class="text-center mb-5">
+                    <h2 class="display-4">📖 Our Library Members</h2>
+                    <p class="text-muted">Meet the people who make the library community vibrant.</p>
+                </div>
+
+                <form method="get" class="mb-4">
+                    <div class="row">
+                        <div class="col-md-3">
+                            <select name="country_id" class="form-control">
+                                <option value="">🌎 All Countries</option>
+                                <t t-foreach="countries" t-as="country">
+                                    <option t-att-value="country.id"
+                                            t-att-selected="country.id == selected_country">
+                                        <t t-esc="country.name"/>
+                                    </option>
+                                </t>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <select name="state_id" class="form-control">
+                                <option value="">🏙️ All States</option>
+                                <t t-foreach="states" t-as="state">
+                                    <option t-att-value="state.id"
+                                            t-att-selected="state.id == selected_state">
+                                        <t t-esc="state.name"/>
+                                    </option>
+                                </t>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <select name="status" class="form-control">
+                                <option value="">✅ All Status</option>
+                                <option value="activate" t-att-selected="selected_status == 'activate'">Active</option>
+                                <option value="deactivate" t-att-selected="selected_status == 'deactivate'">Inactive
+                                </option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <button type="submit" class="btn btn-primary btn-block">
+                                🔍 Filter
+                            </button>
+                        </div>
+                    </div>
+                </form>
+
+
+                <div class="row">
+                    <t t-foreach="members" t-as="member">
+                        <div class="col-md-6 col-lg-4 mb-4 d-flex align-items-stretch">
+                            <div class="card shadow-sm border-0 w-100">
+                                <!-- Optional: Add an image here if members have one -->
+                                <!--
+                                <t t-if="member.image">
+                                    <img t-att-src="'/web/image/library.members/' + str(member.id) + '/image'"
+                                         class="card-img-top rounded-top"
+                                         alt="Member Image"
+                                         style="object-fit: cover; height: 180px;"/>
+                                </t>
+                                -->
+                                <div class="card-body d-flex flex-column">
+                                    <h5 class="card-title mb-2">
+                                        <i class="fa fa-user text-primary mr-1"></i>
+                                        <t t-esc="member.names or 'Unknown'"/>
+                                    </h5>
+                                    <ul class="list-unstyled text-muted small mb-3">
+                                        <li>
+                                            <strong>📧 Email:</strong>
+                                            <t t-esc="member.email or 'N/A'"/>
+                                        </li>
+                                        <li>
+                                            <strong>📞 Phone:</strong>
+                                            <t t-esc="member.phone_num or 'N/A'"/>
+                                        </li>
+                                        <li>
+                                            <strong>📍 Address:</strong>
+                                            <t t-esc="member.address or 'N/A'"/>
+                                        </li>
+                                        <li>
+                                            <strong>🌎 Country:</strong>
+                                            <t t-esc="member.country.name or 'N/A'"/>
+                                        </li>
+                                        <li>
+                                            <strong>🏙️ State:</strong>
+                                            <t t-esc="member.state.name or 'N/A'"/>
+                                        </li>
+                                        <li>
+                                            <strong>📅 Joined:</strong>
+                                            <t t-esc="member.joining_date.strftime('%Y-%m-%d') if member.joining_date else 'N/A'"/>
+                                        </li>
+                                        <li>
+                                            <strong>✅ Status:</strong>
+                                            <t t-esc="dict({'activate':'Active','deactivate':'Inactive'}).get(member.status, 'Unknown')"/>
+                                        </li>
+                                    </ul>
+                                    <div class="mt-auto text-center">
+                                        <a t-att-href="'/member/' + str(member.id)"
+                                           class="btn btn-outline-info btn-sm">
+                                            View Profile
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </t>
+                </div>
+
+            </div>
+        </t>
+    </template>
+
+    <template id="author_pages" name="Authors List Page">
+        <t t-call="website.layout">
+            <div class="container my-5">
+                <div class="text-center mb-5">
+                    <h2 class="display-4">✍️ Our Authors</h2>
+                    <p class="text-muted">Get to know the brilliant minds behind the books.</p>
+                </div>
+
+                <!-- Filters -->
+
+
+                <!-- Author Cards -->
+                <div class="row">
+                    <t t-foreach="author" t-as="author">
+                        <div class="col-md-6 col-lg-4 mb-4 d-flex align-items-stretch">
+                            <div class="card shadow-sm border-0 w-100">
+                                <t t-if="author.images">
+                                    <img t-att-src="'/web/image/library.authors/' + str(author.id) + '/images'"
+                                         class="card-img-top rounded-top"
+                                         alt="Author Image"
+                                         style="object-fit: cover; height: 180px;"/>
+                                </t>
+                                <div class="card-body d-flex flex-column">
+                                    <h5 class="card-title">
+                                        <i class="fa fa-user text-primary mr-1"></i>
+                                        <t t-esc="author.name or 'Unnamed Author'"/>
+                                    </h5>
+                                    <ul class="list-unstyled text-muted small mb-3">
+                                        <li>
+                                            <strong>📚 Nationality:</strong>
+                                            <t t-esc="author.nationality or 'N/A'"/>
+                                        </li>
+                                        <li>
+                                            <strong>🎂 Born:</strong>
+                                            <t t-esc="author.date_of_birth.strftime('%Y-%m-%d') if author.date_of_birth else 'N/A'"/>
+                                        </li>
+                                        <li>
+                                            <strong>🪦 Died:</strong>
+                                            <t t-esc="author.date_of_death.strftime('%Y-%m-%d') if author.date_of_death else 'N/A'"/>
+                                        </li>
+                                        <li>
+                                            <strong>🌍 Country:</strong>
+                                            <t t-esc="author.country.name or 'N/A'"/>
+                                        </li>
+                                        <li>
+                                            <strong>🏙️ State:</strong>
+                                            <t t-esc="author.state.name or 'N/A'"/>
+                                        </li>
+                                        <li>
+                                            <strong>✅ Status:</strong>
+                                            <t t-esc="'Active' if author.active else 'Inactive'"/>
+                                        </li>
+                                    </ul>
+                                    <div class="mt-auto text-center">
+                                        <a t-att-href="'/author/' + str(author.id)" class="btn btn-outline-info btn-sm">
+                                            View Profile
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </t>
+                </div>
+            </div>
+        </t>
+    </template>
+
+    <template id="borrow_form_page" name="Borrow Form Page">
+        <t t-call="website.layout">
+            <div class="container">
+                <h2>Borrow a Book or Magazine</h2>
+                <form action="/library/borrow/submit" method="post">
+                    <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
+
+                    <div class="form-group">
+                        <label for="book_id">Book</label>
+                        <select name="book_id" class="form-control">
+                            <option value="">Select a Book</option>
+                            <t t-foreach="books" t-as="book">
+                                <option t-att-value="book.id">
+                                    <t t-esc="book.name"/>
+                                </option>
+                            </t>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="magazine">Magazine</label>
+                        <select name="magazine" class="form-control">
+                            <option value="">Select a Magazine</option>
+                            <t t-foreach="magazines" t-as="mag">
+                                <option t-att-value="mag.id">
+                                    <t t-esc="mag.name"/>
+                                </option>
+                            </t>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="borrow_date">Borrow Date</label>
+                        <input type="date" name="borrow_date" class="form-control"
+                               t-att-value="(datetime.date.today()).isoformat()"/>
+
+                    </div>
+
+                    <div class="form-group">
+                        <label for="return_date">Expected Return Date</label>
+                        <input type="date" name="return_date" class="form-control"/>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="actual_return_date">Actual Return Date</label>
+                        <input type="date" name="actual_return_date" class="form-control"/>
+                    </div>
+                    <!--                    <div>-->
+                    <!--                        <button type="submit" name="action" value="borrowed" class="btn btn-primary">Borrow</button>-->
+                    <!--                        <button type="submit" name="action" value="returned" class="btn btn-success">Return</button>-->
+                    <!--                        <button type="submit" name="action" value="draft" class="btn btn-secondary">Save as Draft</button>-->
+                    <!--                    </div>-->
+                </form>
+                <div>
+                    <button type="submit" name="action" value="borrowed" class="btn btn-primary">Borrow</button>
+                    <button type="submit" name="action" value="returned" class="btn btn-success">Return</button>
+                    <button type="submit" name="action" value="draft" class="btn btn-secondary">Save as Draft</button>
+                </div>
+            </div>
+        </t>
+    </template>
+
+    <template id="borrow_thankyou" name="Borrow Thank You Page">
+        <t t-call="website.layout">
+            <div class="container">
+                <h2>Thank you!</h2>
+                <p>Your request has been submitted successfully.</p>
+                <a href="/library/borrow" class="btn btn-secondary">Borrow Another</a>
+
+                <div class="col-12 mb-0 py-2 s_website_form_field s_website_form_custom"
+                     data-type="binary" data-name="Field">
+                    <div class="row s_col_no_resize s_col_no_bgcolor">
+                        <label class="col-4 col-sm-auto s_website_form_label" style="width: 200px" for="recruitment6">
+                            <span class="s_website_form_label_content">Demo</span>
+                        </label>
+                        <div class="col-sm">
+                            <input id="recruitment6" type="file"
+                                   class="form-control s_website_form_input o_resume_input"
+                                   name="Demo"/>
+                            <span class="text-muted small">Provide either a resume file or a linkedin profile</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </t>
+    </template>
+
+    <template id="custom_sidebar" name="Custom Sidebar">
+        <!-- Sidebar Container -->
+        <div class="custom-sidebar bg-light p-3 rounded">
+            <!-- Sidebar Title -->
+            <h4 class="text-center mb-4">Sidebar</h4>
+
+            <!-- Call Action Button -->
+            <div class="d-flex justify-content-center mb-3">
+                <a href="#" class="btn btn-primary">Join Course</a>
+            </div>
+
+            <!-- Collapsible Section -->
+            <button class="btn btn-secondary w-100 mb-3" type="button" data-bs-toggle="collapse"
+                    data-bs-target="#collapseDetails" aria-expanded="false" aria-controls="collapseDetails">
+                More Details
+            </button>
+
+            <div id="collapseDetails" class="collapse">
+                <!-- Additional Information (Collapsed) -->
+                <ul class="list-unstyled">
+                    <li>
+                        <strong>Responsible:</strong>
+                        John Doe
+                    </li>
+                    <li>
+                        <strong>Last Update:</strong>
+                        2025-04-25
+                    </li>
+                    <li>
+                        <strong>Completion Time:</strong>
+                        3 hours
+                    </li>
+                    <li>
+                        <strong>Members:</strong>
+                        100+
+                    </li>
+                </ul>
+            </div>
+
+            <!-- Share Button -->
+            <div class="d-flex justify-content-center mt-3">
+                <button class="btn btn-outline-primary w-100">
+                    <i class="fa fa-share-alt"></i>
+                    Share
+                </button>
+            </div>
+        </div>
+    </template>
+    <template id="cart_page" name="Cart Page">
+        <t t-call="website.layout">
+            <div class="container py-5">
+                <h2 class="mb-4">Your Cart</h2>
+
+                <t t-if="cart_items">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Book</th>
+                                <th>Quantity</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <t t-foreach="cart_items" t-as="item">
+                                <tr>
+                                    <td>
+                                        <t t-esc="item.book_id.name"/>
+                                    </td>
+                                    <td>
+                                        <t t-esc="item.quantity"/>
+                                    </td>
+                                    <td>
+                                        <a t-att-href="'/library/cart/remove/%s' % item.id"
+                                           class="btn btn-danger btn-sm">
+                                            Remove
+                                        </a>
+                                    </td>
+                                </tr>
+                            </t>
+                        </tbody>
+                    </table>
+                    <a href="/library/cart/checkout" class="btn btn-primary mt-3">Checkout</a>
+                </t>
+                <t t-else="">
+                    <p>Your cart is empty.</p>
+                    <a href="/library" class="btn btn-outline-secondary">Back to Library</a>
+                </t>
+            </div>
+        </t>
+    </template>
+
+
+    <template id="cart_thankyou" name="Cart Thank You Page">
+        <t t-call="website.layout">
+            <div class="container text-center py-5">
+                <h2>Thank you for the price for requested product</h2>
+                <p>we will get back to you shortly</p>
+                <a href="/library" class="btn btn-secondary mt-3">Back to Library</a>
+            </div>
+        </t>
+    </template>
+
+    <template id="employee_list_template" name="Library Employee List">
+        <t t-call="website.layout">
+            <div class="container mt-5 mb-5">
+                <style>
+                    @import url('https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;700&amp;display=swap');
+
+                    .employee-wrapper {
+                    font-family: 'Rubik', sans-serif;
+                    background: linear-gradient(135deg, #ecf0f3, #ffffff);
+                    border-radius: 15px;
+                    padding: 40px;
+                    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+                    backdrop-filter: blur(10px);
+                    overflow: hidden;
+                    }
+
+                    .employee-header {
+                    text-align: center;
+                    margin-bottom: 30px;
+                    }
+
+                    .employee-header h1 {
+                    font-size: 42px;
+                    color: #2c3e50;
+                    margin-bottom: 10px;
+                    font-weight: 700;
+                    }
+
+                    .employee-header p {
+                    font-size: 18px;
+                    color: #7f8c8d;
+                    font-weight: 400;
+                    }
+
+                    .employee-table {
+                    width: 100%;
+                    border-spacing: 0;
+                    border-collapse: collapse;
+                    overflow-x: auto;
+                    display: block;
+                    white-space: nowrap;
+                    }
+
+                    .employee-table thead {
+                    background: #2c3e50;
+                    color: #ffffff;
+                    text-transform: uppercase;
+                    }
+
+                    .employee-table th,
+                    .employee-table td {
+                    padding: 14px 20px;
+                    text-align: left;
+                    }
+
+                    .employee-table tbody tr {
+                    transition: all 0.3s ease;
+                    border-bottom: 1px solid #ddd;
+                    }
+
+                    .employee-table tbody tr:hover {
+                    background: rgba(44, 62, 80, 0.05);
+                    transform: scale(1.005);
+                    }
+
+                    .employee-icon {
+                    background-color: #3498db;
+                    color: white;
+                    width: 32px;
+                    height: 32px;
+                    border-radius: 50%;
+                    display: inline-flex;
+                    align-items: center;
+                    justify-content: center;
+                    font-weight: bold;
+                    margin-right: 10px;
+                    }
+
+                    @media (max-width: 768px) {
+                    .employee-table {
+                    font-size: 14px;
+                    }
+
+                    .employee-header h1 {
+                    font-size: 28px;
+                    }
+                    }
+                </style>
+
+                <div class="employee-wrapper">
+                    <div class="employee-header">
+                        <h1>🌟 Our Library Team</h1>
+                        <p>Meet the brains and hearts behind our knowledge center</p>
+                    </div>
+
+                    <table class="employee-table">
+                        <thead>
+                            <tr>
+                                <th>Employee</th>
+                                <th>Company</th>
+                                <th>Email</th>
+                                <th>Phone</th>
+                                <th>Country</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <t t-foreach="employees" t-as="emp">
+                                <tr>
+                                    <td>
+                                        <span class="employee-icon">
+                                            <t t-esc="emp.employee.name[0] if emp.employee.name else ''"/>
+                                        </span>
+                                        <t t-esc="emp.employee.name"/>
+                                    </td>
+                                    <td>
+                                        <t t-esc="emp.company_id.name"/>
+                                    </td>
+                                    <td>
+                                        <t t-esc="emp.private_email"/>
+                                    </td>
+                                    <td>
+                                        <t t-esc="emp.private_phone"/>
+                                    </td>
+                                    <td>
+                                        <t t-esc="emp.private_country_id.name"/>
+                                    </td>
+                                </tr>
+                            </t>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </t>
+    </template>
+
+</odoo>
